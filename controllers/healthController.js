@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { getJakartaTimestamp } from "../utils/time.js";
 
 export const health = (req, res) => {
   try {
@@ -13,7 +14,7 @@ export const health = (req, res) => {
     res.json({
       status: "ok",
       uptime: process.uptime(),
-      timestamp: new Date().toISOString(),
+      timestamp: getJakartaTimestamp(),
       db: states[dbState] || "unknown",
     });
   } catch (error) {
