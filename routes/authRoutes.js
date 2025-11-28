@@ -1,5 +1,6 @@
 import express from "express";
-import { register, login } from "../controllers/authController.js";
+import { register, login, getProfile } from "../controllers/authController.js";
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ const router = express.Router();
  *             username: "johndoe"
  *             email: "john@example.com"
  *             password: "password123"
+ *             role: "customer"
  *     responses:
  *       200:
  *         description: User registered successfully
@@ -88,5 +90,7 @@ router.post("/register", register);
  *               $ref: '#/components/schemas/Error'
  */
 router.post("/login", login);
+
+router.get("/profile", protect, getProfile);
 
 export default router;

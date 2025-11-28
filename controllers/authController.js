@@ -4,12 +4,34 @@ import jwt from "jsonwebtoken";
 
 export const register = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, password, role } = req.body;
+    
+    // Validate role
+    if (role && !['customer', 'seller'].includes(role)) {
+      return res.status(400).json({ error: "Role must be either 'customer' or 'seller'" });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({ username, email, password: hashedPassword });
-    res.json({ message: "User registered!", user });
+    const user = await User.create({ 
+      username, 
+      email, 
+      password: hashedPassword,
+      role: role || 'customer'
+    });
+    
+    const userResponse = {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      role: user.role
+    };
+
+    res.json({ message: "User registered!", user: userResponse });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ error: "Username or email already exists" });
+    }
     res.status(400).json({ error: error.message });
   }
 };
@@ -28,7 +50,29 @@ export const login = async (req, res) => {
       expiresIn: "7d",
     });
 
-    res.json({ message: "Login successful!", token });
+    res.json({ 
+      message: "Login successful!", 
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// Get current user profile
+export const getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json(user);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
