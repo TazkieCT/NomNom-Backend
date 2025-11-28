@@ -45,6 +45,12 @@ const options = {
               format: "password",
               description: "User's password (min 6 characters)",
             },
+            role: {
+              type: "string",
+              enum: ["customer", "seller"],
+              description: "User role",
+              default: "customer",
+            },
           },
         },
         LoginRequest: {
@@ -58,6 +64,194 @@ const options = {
             password: {
               type: "string",
               format: "password",
+            },
+          },
+        },
+        Store: {
+          type: "object",
+          properties: {
+            _id: {
+              type: "string",
+            },
+            userId: {
+              type: "string",
+            },
+            name: {
+              type: "string",
+            },
+            address: {
+              type: "string",
+            },
+            latitude: {
+              type: "number",
+            },
+            longitude: {
+              type: "number",
+            },
+            openHours: {
+              type: "string",
+            },
+          },
+        },
+        Category: {
+          type: "object",
+          properties: {
+            _id: {
+              type: "string",
+            },
+            name: {
+              type: "string",
+            },
+          },
+        },
+        DietFilter: {
+          type: "object",
+          properties: {
+            _id: {
+              type: "string",
+            },
+            name: {
+              type: "string",
+            },
+          },
+        },
+        Food: {
+          type: "object",
+          properties: {
+            _id: {
+              type: "string",
+            },
+            storeId: {
+              type: "string",
+            },
+            categoryId: {
+              type: "string",
+            },
+            name: {
+              type: "string",
+            },
+            description: {
+              type: "string",
+            },
+            price: {
+              type: "number",
+            },
+            isAvailable: {
+              type: "boolean",
+            },
+            images: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+            },
+            filters: {
+              type: "array",
+              items: {
+                type: "string",
+              },
+            },
+          },
+        },
+        Coupon: {
+          type: "object",
+          properties: {
+            _id: {
+              type: "string",
+            },
+            code: {
+              type: "string",
+            },
+            discountPercentage: {
+              type: "number",
+            },
+            maxDiscountAmount: {
+              type: "number",
+            },
+            expiresAt: {
+              type: "string",
+              format: "date-time",
+            },
+            usageLimit: {
+              type: "number",
+            },
+            usedCount: {
+              type: "number",
+            },
+            minimumOrder: {
+              type: "number",
+            },
+          },
+        },
+        Order: {
+          type: "object",
+          properties: {
+            _id: {
+              type: "string",
+            },
+            customerId: {
+              type: "string",
+            },
+            storeId: {
+              type: "string",
+            },
+            items: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  foodId: {
+                    type: "string",
+                  },
+                  quantity: {
+                    type: "number",
+                  },
+                  priceEach: {
+                    type: "number",
+                  },
+                  subtotal: {
+                    type: "number",
+                  },
+                },
+              },
+            },
+            totalPrice: {
+              type: "number",
+            },
+            couponId: {
+              type: "string",
+            },
+            finalPrice: {
+              type: "number",
+            },
+            status: {
+              type: "string",
+              enum: ["pending", "paid", "cancelled", "completed"],
+            },
+          },
+        },
+        Review: {
+          type: "object",
+          properties: {
+            _id: {
+              type: "string",
+            },
+            orderId: {
+              type: "string",
+            },
+            foodId: {
+              type: "string",
+            },
+            customerId: {
+              type: "string",
+            },
+            rating: {
+              type: "number",
+              minimum: 1,
+              maximum: 5,
+            },
+            comment: {
+              type: "string",
             },
           },
         },
@@ -86,6 +280,10 @@ const options = {
           type: "object",
           properties: {
             error: {
+              type: "string",
+              description: "Error message",
+            },
+            message: {
               type: "string",
               description: "Error message",
             },

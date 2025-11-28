@@ -78,3 +78,34 @@ export const getProfile = async (req, res) => {
   }
 };
 
+// Apply to become a seller
+export const applyToBecomeSeller = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check if already a seller
+    if (user.role === 'seller') {
+      return res.status(400).json({ error: "You are already a seller" });
+    }
+
+    // Update role to seller
+    user.role = 'seller';
+    await user.save();
+
+    res.json({ 
+      message: "Successfully upgraded to seller account!",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
