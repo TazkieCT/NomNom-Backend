@@ -16,13 +16,6 @@ export const findStoreByUserId = async (userId) => {
   return await Store.findOne({ userId }).populate('userId', 'username email');
 };
 
-export const findStoresWithLocation = async () => {
-  return await Store.find({
-    latitude: { $exists: true },
-    longitude: { $exists: true }
-  }).populate('userId', 'username email');
-};
-
 export const updateStore = async (id, storeData) => {
   return await Store.findByIdAndUpdate(
     id,
