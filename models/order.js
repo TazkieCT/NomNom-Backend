@@ -16,7 +16,7 @@ const orderSchema = new mongoose.Schema({
   finalPrice: { type: Number, required: true },
   status: { 
     type: String, 
-    enum: ['pending', 'paid', 'cancelled', 'completed'], 
+    enum: ['pending', 'cancelled', 'completed'], 
     default: 'pending' 
   }
 }, { timestamps: true });

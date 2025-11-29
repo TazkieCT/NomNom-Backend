@@ -1,5 +1,7 @@
 import * as foodRepository from "../repositories/foodRepository.js";
 import * as storeRepository from "../repositories/storeRepository.js";
+import * as reviewRepository from "../repositories/reviewRepository.js";
+import mongoose from "mongoose";
 
 export const createFood = async (req, res) => {
   try {
@@ -53,7 +55,20 @@ export const getAllFoods = async (req, res) => {
     }
     
     const foods = await foodRepository.findAllFoods(query);
-    res.json(foods);
+    
+    const foodIds = foods.map(food => new mongoose.Types.ObjectId(food._id));
+    const reviewStats = await reviewRepository.getReviewStatsByFoodIds(foodIds);
+    
+    const foodsWithReviews = foods.map(food => {
+      const stats = reviewStats[food._id.toString()] || { averageRating: 0, totalReviews: 0 };
+      return {
+        ...food.toObject(),
+        averageRating: stats.averageRating,
+        totalReviews: stats.totalReviews
+      };
+    });
+    
+    res.json(foodsWithReviews);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -67,7 +82,17 @@ export const getFoodById = async (req, res) => {
       return res.status(404).json({ message: "Food not found" });
     }
     
-    res.json(food);
+    const foodIds = [new mongoose.Types.ObjectId(food._id)];
+    const reviewStats = await reviewRepository.getReviewStatsByFoodIds(foodIds);
+    const stats = reviewStats[food._id.toString()] || { averageRating: 0, totalReviews: 0 };
+    
+    const foodWithReviews = {
+      ...food.toObject(),
+      averageRating: stats.averageRating,
+      totalReviews: stats.totalReviews
+    };
+    
+    res.json(foodWithReviews);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -81,7 +106,20 @@ export const getMyFoods = async (req, res) => {
     }
 
     const foods = await foodRepository.findFoodsByStoreId(store._id);
-    res.json(foods);
+    
+    const foodIds = foods.map(food => new mongoose.Types.ObjectId(food._id));
+    const reviewStats = await reviewRepository.getReviewStatsByFoodIds(foodIds);
+    
+    const foodsWithReviews = foods.map(food => {
+      const stats = reviewStats[food._id.toString()] || { averageRating: 0, totalReviews: 0 };
+      return {
+        ...food.toObject(),
+        averageRating: stats.averageRating,
+        totalReviews: stats.totalReviews
+      };
+    });
+    
+    res.json(foodsWithReviews);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

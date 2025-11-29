@@ -49,3 +49,26 @@ export const updateReview = async (id, reviewData) => {
 export const deleteReview = async (id) => {
   return await Review.findByIdAndDelete(id);
 };
+
+export const getReviewStatsByFoodIds = async (foodIds) => {
+  const stats = await Review.aggregate([
+    { $match: { foodId: { $in: foodIds } } },
+    {
+      $group: {
+        _id: "$foodId",
+        averageRating: { $avg: "$rating" },
+        totalReviews: { $sum: 1 }
+      }
+    }
+  ]);
+  
+  const statsMap = {};
+  stats.forEach(stat => {
+    statsMap[stat._id.toString()] = {
+      averageRating: parseFloat(stat.averageRating.toFixed(1)),
+      totalReviews: stat.totalReviews
+    };
+  });
+  
+  return statsMap;
+};
