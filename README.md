@@ -1,7 +1,7 @@
 Run this command for setup
 
 ```
-npm install jsonwebtoken dotenv bcryptjs cors mongoose express
+npm install jsonwebtoken dotenv bcryptjs cors mongoose express swagger-ui-express swagger-jsdoc
 npm install --save-dev nodemon
 ```
 
