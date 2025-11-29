@@ -27,31 +27,14 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customSiteTitle: "NomNom API Docs",
 }));
 
-// Public health checks (no auth required)
 app.use("/health", healthRoutes);
-
-// Auth routes
 app.use("/api/auth", authRoutes);
-
-// Store routes
 app.use("/api/stores", storeRoutes);
-
-// Category routes
 app.use("/api/categories", categoryRoutes);
-
-// Diet filter routes
 app.use("/api/filters", dietFilterRoutes);
-
-// Food routes
 app.use("/api/foods", foodRoutes);
-
-// Coupon routes
 app.use("/api/coupons", couponRoutes);
-
-// Order routes
 app.use("/api/orders", orderRoutes);
-
-// Review routes
 app.use("/api/reviews", reviewRoutes);
 
 const PORT = process.env.PORT || 4000;
