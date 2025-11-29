@@ -1,16 +1,16 @@
-import Food from "../models/food.js";
-import Store from "../models/store.js";
+import * as foodRepository from "../repositories/foodRepository.js";
+import * as storeRepository from "../repositories/storeRepository.js";
 
 export const createFood = async (req, res) => {
   try {
     const { categoryId, name, description, price, isAvailable, images, filters } = req.body;
     
-    const store = await Store.findOne({ userId: req.user.id });
+    const store = await storeRepository.findStoreByUserId(req.user.id);
     if (!store) {
       return res.status(403).json({ message: "You must have a store to add food items" });
     }
 
-    const food = await Food.create({
+    const food = await foodRepository.createFood({
       storeId: store._id,
       categoryId,
       name,
@@ -21,7 +21,6 @@ export const createFood = async (req, res) => {
       filters: filters || []
     });
 
-    await food.populate(['categoryId', 'storeId', 'filters']);
     res.status(201).json(food);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -53,12 +52,7 @@ export const getAllFoods = async (req, res) => {
       ];
     }
     
-    const foods = await Food.find(query)
-      .populate('categoryId')
-      .populate('storeId')
-      .populate('filters')
-      .sort({ createdAt: -1 });
-    
+    const foods = await foodRepository.findAllFoods(query);
     res.json(foods);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -67,10 +61,7 @@ export const getAllFoods = async (req, res) => {
 
 export const getFoodById = async (req, res) => {
   try {
-    const food = await Food.findById(req.params.id)
-      .populate('categoryId')
-      .populate('storeId')
-      .populate('filters');
+    const food = await foodRepository.findFoodById(req.params.id);
       
     if (!food) {
       return res.status(404).json({ message: "Food not found" });
@@ -84,16 +75,12 @@ export const getFoodById = async (req, res) => {
 
 export const getMyFoods = async (req, res) => {
   try {
-    const store = await Store.findOne({ userId: req.user.id });
+    const store = await storeRepository.findStoreByUserId(req.user.id);
     if (!store) {
       return res.status(404).json({ message: "You don't have a store" });
     }
 
-    const foods = await Food.find({ storeId: store._id })
-      .populate('categoryId')
-      .populate('filters')
-      .sort({ createdAt: -1 });
-    
+    const foods = await foodRepository.findFoodsByStoreId(store._id);
     res.json(foods);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -104,28 +91,27 @@ export const updateFood = async (req, res) => {
   try {
     const { categoryId, name, description, price, isAvailable, images, filters } = req.body;
     
-    const food = await Food.findById(req.params.id);
+    const food = await foodRepository.findFoodById(req.params.id);
     if (!food) {
       return res.status(404).json({ message: "Food not found" });
     }
 
-    const store = await Store.findOne({ userId: req.user.id, _id: food.storeId });
-    if (!store) {
+    const store = await storeRepository.findStoreByUserId(req.user.id);
+    if (!store || store._id.toString() !== food.storeId._id.toString()) {
       return res.status(403).json({ message: "You don't have permission to update this food" });
     }
 
-    food.categoryId = categoryId || food.categoryId;
-    food.name = name || food.name;
-    food.description = description !== undefined ? description : food.description;
-    food.price = price || food.price;
-    food.isAvailable = isAvailable !== undefined ? isAvailable : food.isAvailable;
-    food.images = images || food.images;
-    food.filters = filters || food.filters;
+    const updateData = {};
+    if (categoryId) updateData.categoryId = categoryId;
+    if (name) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (price) updateData.price = price;
+    if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
+    if (images) updateData.images = images;
+    if (filters) updateData.filters = filters;
 
-    await food.save();
-    await food.populate(['categoryId', 'storeId', 'filters']);
-    
-    res.json(food);
+    const updatedFood = await foodRepository.updateFood(req.params.id, updateData);
+    res.json(updatedFood);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -133,17 +119,17 @@ export const updateFood = async (req, res) => {
 
 export const deleteFood = async (req, res) => {
   try {
-    const food = await Food.findById(req.params.id);
+    const food = await foodRepository.findFoodById(req.params.id);
     if (!food) {
       return res.status(404).json({ message: "Food not found" });
     }
 
-    const store = await Store.findOne({ userId: req.user.id, _id: food.storeId });
-    if (!store) {
+    const store = await storeRepository.findStoreByUserId(req.user.id);
+    if (!store || store._id.toString() !== food.storeId._id.toString()) {
       return res.status(403).json({ message: "You don't have permission to delete this food" });
     }
 
-    await food.deleteOne();
+    await foodRepository.deleteFood(req.params.id);
     res.json({ message: "Food deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -1,6 +1,5 @@
-import Review from "../models/review.js";
-import Order from "../models/order.js";
-import Food from "../models/food.js";
+import * as reviewRepository from "../repositories/reviewRepository.js";
+import * as orderRepository from "../repositories/orderRepository.js";
 
 // Create review (customer only, must have ordered the food)
 export const createReview = async (req, res) => {
@@ -11,12 +10,12 @@ export const createReview = async (req, res) => {
       return res.status(400).json({ message: "Rating must be between 1 and 5" });
     }
 
-    const order = await Order.findById(orderId);
+    const order = await orderRepository.findOrderById(orderId);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    if (order.customerId.toString() !== req.user.id) {
+    if (order.customerId._id.toString() !== req.user.id) {
       return res.status(403).json({ message: "You can only review your own orders" });
     }
 
@@ -24,17 +23,17 @@ export const createReview = async (req, res) => {
       return res.status(400).json({ message: "You can only review completed orders" });
     }
 
-    const orderItem = order.items.find(item => item.foodId.toString() === foodId);
+    const orderItem = order.items.find(item => item.foodId._id.toString() === foodId);
     if (!orderItem) {
       return res.status(400).json({ message: "This food was not in your order" });
     }
 
-    const existingReview = await Review.findOne({ orderId, foodId, customerId: req.user.id });
+    const existingReview = await reviewRepository.findExistingReview(orderId, foodId, req.user.id);
     if (existingReview) {
       return res.status(400).json({ message: "You have already reviewed this food for this order" });
     }
 
-    const review = await Review.create({
+    const review = await reviewRepository.createReview({
       orderId,
       foodId,
       customerId: req.user.id,
@@ -42,7 +41,6 @@ export const createReview = async (req, res) => {
       comment
     });
 
-    await review.populate(['foodId', 'customerId', 'orderId']);
     res.status(201).json(review);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -64,11 +62,7 @@ export const getAllReviews = async (req, res) => {
       if (maxRating) query.rating.$lte = parseInt(maxRating);
     }
 
-    let reviews = await Review.find(query)
-      .populate('foodId')
-      .populate('customerId', 'username')
-      .populate('orderId')
-      .sort({ createdAt: -1 });
+    let reviews = await reviewRepository.findAllReviews(query);
 
     if (storeId) {
       reviews = reviews.filter(review => 
@@ -87,10 +81,7 @@ export const getFoodReviews = async (req, res) => {
   try {
     const { foodId } = req.params;
     
-    const reviews = await Review.find({ foodId })
-      .populate('customerId', 'username')
-      .populate('orderId')
-      .sort({ createdAt: -1 });
+    const reviews = await reviewRepository.findReviewsByFoodId(foodId);
 
     const avgRating = reviews.length > 0
       ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
@@ -108,10 +99,7 @@ export const getFoodReviews = async (req, res) => {
 
 export const getReviewById = async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id)
-      .populate('foodId')
-      .populate('customerId', 'username')
-      .populate('orderId');
+    const review = await reviewRepository.findReviewById(req.params.id);
       
     if (!review) {
       return res.status(404).json({ message: "Review not found" });
@@ -125,11 +113,7 @@ export const getReviewById = async (req, res) => {
 
 export const getMyReviews = async (req, res) => {
   try {
-    const reviews = await Review.find({ customerId: req.user.id })
-      .populate('foodId')
-      .populate('orderId')
-      .sort({ createdAt: -1 });
-    
+    const reviews = await reviewRepository.findReviewsByCustomerId(req.user.id);
     res.json(reviews);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -140,30 +124,29 @@ export const updateReview = async (req, res) => {
   try {
     const { rating, comment } = req.body;
     
-    const review = await Review.findById(req.params.id);
+    const review = await reviewRepository.findReviewById(req.params.id);
     if (!review) {
       return res.status(404).json({ message: "Review not found" });
     }
 
-    if (review.customerId.toString() !== req.user.id) {
+    if (review.customerId._id.toString() !== req.user.id) {
       return res.status(403).json({ message: "You can only update your own reviews" });
     }
 
+    const updateData = {};
     if (rating !== undefined) {
       if (rating < 1 || rating > 5) {
         return res.status(400).json({ message: "Rating must be between 1 and 5" });
       }
-      review.rating = rating;
+      updateData.rating = rating;
     }
     
     if (comment !== undefined) {
-      review.comment = comment;
+      updateData.comment = comment;
     }
 
-    await review.save();
-    await review.populate(['foodId', 'customerId', 'orderId']);
-    
-    res.json(review);
+    const updatedReview = await reviewRepository.updateReview(req.params.id, updateData);
+    res.json(updatedReview);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -171,16 +154,16 @@ export const updateReview = async (req, res) => {
 
 export const deleteReview = async (req, res) => {
   try {
-    const review = await Review.findById(req.params.id);
+    const review = await reviewRepository.findReviewById(req.params.id);
     if (!review) {
       return res.status(404).json({ message: "Review not found" });
     }
 
-    if (review.customerId.toString() !== req.user.id) {
+    if (review.customerId._id.toString() !== req.user.id) {
       return res.status(403).json({ message: "You can only delete your own reviews" });
     }
 
-    await review.deleteOne();
+    await reviewRepository.deleteReview(req.params.id);
     res.json({ message: "Review deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });

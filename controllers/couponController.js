@@ -1,10 +1,10 @@
-import Coupon from "../models/coupon.js";
+import * as couponRepository from "../repositories/couponRepository.js";
 
 export const createCoupon = async (req, res) => {
   try {
     const { code, discountPercentage, maxDiscountAmount, expiresAt, usageLimit, minimumOrder } = req.body;
     
-    const coupon = await Coupon.create({
+    const coupon = await couponRepository.createCoupon({
       code: code.toUpperCase(),
       discountPercentage,
       maxDiscountAmount,
@@ -24,7 +24,7 @@ export const createCoupon = async (req, res) => {
 
 export const getAllCoupons = async (req, res) => {
   try {
-    const coupons = await Coupon.find().sort({ createdAt: -1 });
+    const coupons = await couponRepository.findAllCoupons();
     res.json(coupons);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -33,12 +33,7 @@ export const getAllCoupons = async (req, res) => {
 
 export const getActiveCoupons = async (req, res) => {
   try {
-    const now = new Date();
-    const coupons = await Coupon.find({
-      expiresAt: { $gt: now },
-      $expr: { $lt: ['$usedCount', '$usageLimit'] }
-    }).sort({ createdAt: -1 });
-    
+    const coupons = await couponRepository.findActiveCoupons();
     res.json(coupons);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -49,7 +44,7 @@ export const validateCoupon = async (req, res) => {
   try {
     const { code, orderTotal } = req.body;
     
-    const coupon = await Coupon.findOne({ code: code.toUpperCase() });
+    const coupon = await couponRepository.findCouponByCode(code);
     if (!coupon) {
       return res.status(404).json({ message: "Coupon not found" });
     }
@@ -86,7 +81,7 @@ export const validateCoupon = async (req, res) => {
 
 export const getCouponById = async (req, res) => {
   try {
-    const coupon = await Coupon.findById(req.params.id);
+    const coupon = await couponRepository.findCouponById(req.params.id);
     if (!coupon) {
       return res.status(404).json({ message: "Coupon not found" });
     }
@@ -108,11 +103,7 @@ export const updateCoupon = async (req, res) => {
     if (usageLimit !== undefined) updateData.usageLimit = usageLimit;
     if (minimumOrder !== undefined) updateData.minimumOrder = minimumOrder;
 
-    const coupon = await Coupon.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      { new: true, runValidators: true }
-    );
+    const coupon = await couponRepository.updateCoupon(req.params.id, updateData);
     
     if (!coupon) {
       return res.status(404).json({ message: "Coupon not found" });
@@ -129,7 +120,7 @@ export const updateCoupon = async (req, res) => {
 
 export const deleteCoupon = async (req, res) => {
   try {
-    const coupon = await Coupon.findByIdAndDelete(req.params.id);
+    const coupon = await couponRepository.deleteCoupon(req.params.id);
     
     if (!coupon) {
       return res.status(404).json({ message: "Coupon not found" });

@@ -1,15 +1,15 @@
-import Store from "../models/store.js";
+import * as storeRepository from "../repositories/storeRepository.js";
 
 export const createStore = async (req, res) => {
   try {
     const { name, address, latitude, longitude, openHours } = req.body;
     
-    const existingStore = await Store.findOne({ userId: req.user.id });
+    const existingStore = await storeRepository.findStoreByUserId(req.user.id);
     if (existingStore) {
       return res.status(400).json({ message: "You already have a store" });
     }
 
-    const store = await Store.create({
+    const store = await storeRepository.createStore({
       userId: req.user.id,
       name,
       address,
@@ -34,17 +34,14 @@ export const getAllStores = async (req, res) => {
       const lon = parseFloat(longitude);
       const rad = parseFloat(radius);
       
-      stores = await Store.find({
-        latitude: { $exists: true },
-        longitude: { $exists: true }
-      }).populate('userId', 'username email');
+      stores = await storeRepository.findStoresWithLocation();
       
       stores = stores.filter(store => {
         const distance = calculateDistance(lat, lon, store.latitude, store.longitude);
         return distance <= rad;
       });
     } else {
-      stores = await Store.find().populate('userId', 'username email');
+      stores = await storeRepository.findAllStores();
     }
     
     res.json(stores);
@@ -55,7 +52,7 @@ export const getAllStores = async (req, res) => {
 
 export const getStoreById = async (req, res) => {
   try {
-    const store = await Store.findById(req.params.id).populate('userId', 'username email');
+    const store = await storeRepository.findStoreById(req.params.id);
     if (!store) {
       return res.status(404).json({ message: "Store not found" });
     }
@@ -67,7 +64,7 @@ export const getStoreById = async (req, res) => {
 
 export const getMyStore = async (req, res) => {
   try {
-    const store = await Store.findOne({ userId: req.user.id }).populate('userId', 'username email');
+    const store = await storeRepository.findStoreByUserId(req.user.id);
     if (!store) {
       return res.status(404).json({ message: "You don't have a store yet" });
     }
@@ -81,19 +78,20 @@ export const updateStore = async (req, res) => {
   try {
     const { name, address, latitude, longitude, openHours } = req.body;
     
-    const store = await Store.findOne({ userId: req.user.id });
+    const store = await storeRepository.findStoreByUserId(req.user.id);
     if (!store) {
       return res.status(404).json({ message: "Store not found" });
     }
 
-    store.name = name || store.name;
-    store.address = address || store.address;
-    store.latitude = latitude !== undefined ? latitude : store.latitude;
-    store.longitude = longitude !== undefined ? longitude : store.longitude;
-    store.openHours = openHours || store.openHours;
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (address) updateData.address = address;
+    if (latitude !== undefined) updateData.latitude = latitude;
+    if (longitude !== undefined) updateData.longitude = longitude;
+    if (openHours) updateData.openHours = openHours;
 
-    await store.save();
-    res.json(store);
+    const updatedStore = await storeRepository.updateStore(store._id, updateData);
+    res.json(updatedStore);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -101,12 +99,12 @@ export const updateStore = async (req, res) => {
 
 export const deleteStore = async (req, res) => {
   try {
-    const store = await Store.findOne({ userId: req.user.id });
+    const store = await storeRepository.findStoreByUserId(req.user.id);
     if (!store) {
       return res.status(404).json({ message: "Store not found" });
     }
 
-    await store.deleteOne();
+    await storeRepository.deleteStore(store._id);
     res.json({ message: "Store deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });

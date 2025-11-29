@@ -1,7 +1,7 @@
-import Order from "../models/order.js";
-import Food from "../models/food.js";
-import Coupon from "../models/coupon.js";
-import Store from "../models/store.js";
+import * as orderRepository from "../repositories/orderRepository.js";
+import * as foodRepository from "../repositories/foodRepository.js";
+import * as couponRepository from "../repositories/couponRepository.js";
+import * as storeRepository from "../repositories/storeRepository.js";
 
 export const createOrder = async (req, res) => {
   try {
@@ -15,11 +15,11 @@ export const createOrder = async (req, res) => {
     let totalPrice = 0;
 
     for (const item of items) {
-      const food = await Food.findById(item.foodId);
+      const food = await foodRepository.findFoodById(item.foodId);
       if (!food) {
         return res.status(404).json({ message: `Food ${item.foodId} not found` });
       }
-      if (food.storeId.toString() !== storeId) {
+      if (food.storeId._id.toString() !== storeId) {
         return res.status(400).json({ message: "All items must be from the same store" });
       }
       if (!food.isAvailable) {
@@ -41,7 +41,7 @@ export const createOrder = async (req, res) => {
     let couponId = null;
 
     if (couponCode) {
-      const coupon = await Coupon.findOne({ code: couponCode.toUpperCase() });
+      const coupon = await couponRepository.findCouponByCode(couponCode);
       if (!coupon) {
         return res.status(404).json({ message: "Invalid coupon code" });
       }
@@ -68,11 +68,10 @@ export const createOrder = async (req, res) => {
       finalPrice = totalPrice - discount;
       couponId = coupon._id;
 
-      coupon.usedCount += 1;
-      await coupon.save();
+      await couponRepository.incrementCouponUsage(coupon._id);
     }
 
-    const order = await Order.create({
+    const order = await orderRepository.createOrder({
       customerId: req.user.id,
       storeId,
       items: orderItems,
@@ -82,7 +81,6 @@ export const createOrder = async (req, res) => {
       status: 'pending'
     });
 
-    await order.populate(['customerId', 'storeId', 'items.foodId', 'couponId']);
     res.status(201).json(order);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -96,7 +94,7 @@ export const getAllOrders = async (req, res) => {
     if (req.user.role === 'customer') {
       query.customerId = req.user.id;
     } else if (req.user.role === 'seller') {
-      const store = await Store.findOne({ userId: req.user.id });
+      const store = await storeRepository.findStoreByUserId(req.user.id);
       if (!store) {
         return res.json([]);
       }
@@ -106,13 +104,7 @@ export const getAllOrders = async (req, res) => {
     const { status } = req.query;
     if (status) query.status = status;
 
-    const orders = await Order.find(query)
-      .populate('customerId', 'username email')
-      .populate('storeId')
-      .populate('items.foodId')
-      .populate('couponId')
-      .sort({ createdAt: -1 });
-    
+    const orders = await orderRepository.findAllOrders(query);
     res.json(orders);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -121,11 +113,7 @@ export const getAllOrders = async (req, res) => {
 
 export const getOrderById = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id)
-      .populate('customerId', 'username email')
-      .populate('storeId')
-      .populate('items.foodId')
-      .populate('couponId');
+    const order = await orderRepository.findOrderById(req.params.id);
       
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
@@ -136,8 +124,8 @@ export const getOrderById = async (req, res) => {
     }
 
     if (req.user.role === 'seller') {
-      const store = await Store.findOne({ userId: req.user.id, _id: order.storeId });
-      if (!store) {
+      const store = await storeRepository.findStoreByUserId(req.user.id);
+      if (!store || store._id.toString() !== order.storeId._id.toString()) {
         return res.status(403).json({ message: "Access denied" });
       }
     }
@@ -156,21 +144,18 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(400).json({ message: "Invalid status" });
     }
 
-    const order = await Order.findById(req.params.id);
+    const order = await orderRepository.findOrderById(req.params.id);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    const store = await Store.findOne({ userId: req.user.id, _id: order.storeId });
-    if (!store) {
+    const store = await storeRepository.findStoreByUserId(req.user.id);
+    if (!store || store._id.toString() !== order.storeId._id.toString()) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    order.status = status;
-    await order.save();
-    await order.populate(['customerId', 'storeId', 'items.foodId', 'couponId']);
-    
-    res.json(order);
+    const updatedOrder = await orderRepository.updateOrderStatus(req.params.id, status);
+    res.json(updatedOrder);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -178,12 +163,12 @@ export const updateOrderStatus = async (req, res) => {
 
 export const cancelOrder = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id);
+    const order = await orderRepository.findOrderById(req.params.id);
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
 
-    if (order.customerId.toString() !== req.user.id) {
+    if (order.customerId._id.toString() !== req.user.id) {
       return res.status(403).json({ message: "Access denied" });
     }
 
@@ -191,15 +176,13 @@ export const cancelOrder = async (req, res) => {
       return res.status(400).json({ message: "Can only cancel pending orders" });
     }
 
-    order.status = 'cancelled';
-    await order.save();
+    const cancelledOrder = await orderRepository.updateOrderStatus(req.params.id, 'cancelled');
 
-    if (order.couponId) {
-      await Coupon.findByIdAndUpdate(order.couponId, { $inc: { usedCount: -1 } });
+    if (cancelledOrder.couponId) {
+      await couponRepository.decrementCouponUsage(cancelledOrder.couponId._id);
     }
 
-    await order.populate(['customerId', 'storeId', 'items.foodId', 'couponId']);
-    res.json(order);
+    res.json(cancelledOrder);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

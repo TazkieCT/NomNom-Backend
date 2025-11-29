@@ -1,4 +1,4 @@
-import User from "../models/user.js";
+import * as userRepository from "../repositories/userRepository.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -13,7 +13,7 @@ export const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({ 
+    const user = await userRepository.createUser({ 
       username, 
       email, 
       password: hashedPassword,
@@ -40,7 +40,7 @@ export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const user = await userRepository.findUserByEmail(email);
     if (!user) return res.status(401).json({ error: "User not found!" });
 
     const checkPassword = await bcrypt.compare(password, user.password);
@@ -68,7 +68,7 @@ export const login = async (req, res) => {
 // Get current user profile
 export const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    const user = await userRepository.findUserById(req.user.id);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -81,7 +81,7 @@ export const getProfile = async (req, res) => {
 // Apply to become a seller
 export const applyToBecomeSeller = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await userRepository.findUserById(req.user.id);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
@@ -92,16 +92,15 @@ export const applyToBecomeSeller = async (req, res) => {
     }
 
     // Update role to seller
-    user.role = 'seller';
-    await user.save();
+    const updatedUser = await userRepository.updateUserRole(req.user.id, 'seller');
 
     res.json({ 
       message: "Successfully upgraded to seller account!",
       user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role
+        id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role
       }
     });
   } catch (error) {

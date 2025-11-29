@@ -1,10 +1,10 @@
-import DietFilter from "../models/dietFilter.js";
+import * as dietFilterRepository from "../repositories/dietFilterRepository.js";
 
 export const createDietFilter = async (req, res) => {
   try {
     const { name } = req.body;
     
-    const filter = await DietFilter.create({ name });
+    const filter = await dietFilterRepository.createDietFilter({ name });
     res.status(201).json(filter);
   } catch (error) {
     if (error.code === 11000) {
@@ -16,7 +16,7 @@ export const createDietFilter = async (req, res) => {
 
 export const getAllDietFilters = async (req, res) => {
   try {
-    const filters = await DietFilter.find().sort({ name: 1 });
+    const filters = await dietFilterRepository.findAllDietFilters();
     res.json(filters);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -25,7 +25,7 @@ export const getAllDietFilters = async (req, res) => {
 
 export const getDietFilterById = async (req, res) => {
   try {
-    const filter = await DietFilter.findById(req.params.id);
+    const filter = await dietFilterRepository.findDietFilterById(req.params.id);
     if (!filter) {
       return res.status(404).json({ message: "Diet filter not found" });
     }
@@ -39,11 +39,7 @@ export const updateDietFilter = async (req, res) => {
   try {
     const { name } = req.body;
     
-    const filter = await DietFilter.findByIdAndUpdate(
-      req.params.id,
-      { name },
-      { new: true, runValidators: true }
-    );
+    const filter = await dietFilterRepository.updateDietFilter(req.params.id, { name });
     
     if (!filter) {
       return res.status(404).json({ message: "Diet filter not found" });
@@ -60,7 +56,7 @@ export const updateDietFilter = async (req, res) => {
 
 export const deleteDietFilter = async (req, res) => {
   try {
-    const filter = await DietFilter.findByIdAndDelete(req.params.id);
+    const filter = await dietFilterRepository.deleteDietFilter(req.params.id);
     
     if (!filter) {
       return res.status(404).json({ message: "Diet filter not found" });
