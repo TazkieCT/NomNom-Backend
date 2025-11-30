@@ -23,3 +23,11 @@ export const updateUserRole = async (id, role) => {
     { new: true, runValidators: true }
   );
 };
+
+export const updateUser = async (id, updateData) => {
+  return await User.findByIdAndUpdate(
+    id,
+    updateData,
+    { new: true, runValidators: true }
+  ).select('-password');
+};

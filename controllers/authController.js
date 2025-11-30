@@ -51,7 +51,6 @@ export const register = async (req, res) => {
       role: role || 'customer'
     });
     
-    // Generate JWT token for automatic login after registration
     const token = jwt.sign(
       { id: user._id, role: user.role }, 
       process.env.JWT_SECRET, 
@@ -158,6 +157,88 @@ export const applyToBecomeSeller = async (req, res) => {
     });
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { username, email, currentPassword, newPassword } = req.body;
+
+    const user = await userRepository.findUserByEmailWithPassword(
+      (await userRepository.findUserById(req.user.id)).email
+    );
+    
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (username) {
+      const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+      if (!usernameRegex.test(username)) {
+        return res.status(400).json({ 
+          error: "Username must be 3-20 characters long and contain only letters, numbers, and underscores" 
+        });
+      }
+    }
+
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      if (email.toLowerCase() !== user.email.toLowerCase()) {
+        const existingUser = await userRepository.findUserByEmail(email.toLowerCase());
+        if (existingUser) {
+          return res.status(400).json({ error: "Email already in use" });
+        }
+      }
+    }
+
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ error: "Current password is required to change password" });
+      }
+
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(400).json({ error: "Current password is incorrect" });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: "New password must be at least 8 characters long" });
+      }
+
+      const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+      if (!passwordRegex.test(newPassword)) {
+        return res.status(400).json({ 
+          error: "Password must contain at least one letter and one number" 
+        });
+      }
+    }
+
+    // Build update object
+    const updateData = {};
+    if (username) updateData.username = username.trim();
+    if (email) updateData.email = email.toLowerCase().trim();
+    if (newPassword) {
+      updateData.password = await bcrypt.hash(newPassword, 12);
+    }
+
+    const updatedUser = await userRepository.updateUser(req.user.id, updateData);
+
+    res.json({
+      message: "Profile updated successfully!",
+      user: {
+        id: updatedUser._id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role
+      }
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: "Failed to update profile. Please try again." });
   }
 };
 

@@ -1,5 +1,5 @@
 import express from "express";
-import { register, login, getProfile, applyToBecomeSeller } from "../controllers/authController.js";
+import { register, login, getProfile, applyToBecomeSeller, updateProfile } from "../controllers/authController.js";
 import { protect, isCustomer } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -122,6 +122,39 @@ router.post("/login", login);
  *         description: Not authenticated
  */
 router.get("/profile", protect, getProfile);
+
+/**
+ * @swagger
+ * /api/auth/profile:
+ *   put:
+ *     summary: Update user profile
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Not authenticated
+ */
+router.put("/profile", protect, updateProfile);
 
 /**
  * @swagger
