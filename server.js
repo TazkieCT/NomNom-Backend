@@ -12,6 +12,7 @@ import foodRoutes from "./routes/foodRoutes.js";
 import couponRoutes from "./routes/couponRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
+import appRatingRoutes from "./routes/appRatingRoutes.js";
 import { swaggerSpec } from "./config/swagger.js";
 
 dotenv.config();
@@ -36,6 +37,7 @@ app.use("/api/foods", foodRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/app-ratings", appRatingRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
