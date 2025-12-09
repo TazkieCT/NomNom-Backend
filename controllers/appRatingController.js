@@ -4,19 +4,19 @@ import * as appRatingRepository from "../repositories/appRatingRepository.js";
 export const createOrUpdateAppRating = async (req, res) => {
   try {
     const { rating, comment } = req.body;
-    const customerId = req.user.userId;
+    const userId = req.user.userId;
 
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ message: "Rating must be between 1 and 5" });
     }
 
-    // Check if customer already has a rating
-    const existingRating = await appRatingRepository.findAppRatingByCustomerId(customerId);
+    // Check if user already has a rating
+    const existingRating = await appRatingRepository.findAppRatingByCustomerId(userId);
 
     let appRating;
     if (existingRating) {
       // Update existing rating
-      appRating = await appRatingRepository.updateAppRatingByCustomerId(customerId, {
+      appRating = await appRatingRepository.updateAppRatingByCustomerId(userId, {
         rating,
         comment,
         isApproved: false, // Reset approval status on update
@@ -24,7 +24,7 @@ export const createOrUpdateAppRating = async (req, res) => {
     } else {
       // Create new rating
       appRating = await appRatingRepository.createAppRating({
-        customerId,
+        customerId: userId,
         rating,
         comment,
       });
@@ -40,8 +40,8 @@ export const createOrUpdateAppRating = async (req, res) => {
 // Get user's own rating
 export const getMyAppRating = async (req, res) => {
   try {
-    const customerId = req.user.userId;
-    const appRating = await appRatingRepository.findAppRatingByCustomerId(customerId);
+    const userId = req.user.userId;
+    const appRating = await appRatingRepository.findAppRatingByCustomerId(userId);
 
     if (!appRating) {
       return res.status(404).json({ message: "No rating found" });
@@ -57,8 +57,8 @@ export const getMyAppRating = async (req, res) => {
 // Delete user's own rating
 export const deleteMyAppRating = async (req, res) => {
   try {
-    const customerId = req.user.userId;
-    const appRating = await appRatingRepository.deleteAppRatingByCustomerId(customerId);
+    const userId = req.user.userId;
+    const appRating = await appRatingRepository.deleteAppRatingByCustomerId(userId);
 
     if (!appRating) {
       return res.status(404).json({ message: "No rating found" });
