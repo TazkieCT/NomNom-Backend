@@ -4,7 +4,7 @@ import * as appRatingRepository from "../repositories/appRatingRepository.js";
 export const createOrUpdateAppRating = async (req, res) => {
   try {
     const { rating, comment } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({ message: "Rating must be between 1 and 5" });
@@ -40,7 +40,7 @@ export const createOrUpdateAppRating = async (req, res) => {
 // Get user's own rating
 export const getMyAppRating = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const appRating = await appRatingRepository.findAppRatingByCustomerId(userId);
 
     if (!appRating) {
@@ -57,7 +57,7 @@ export const getMyAppRating = async (req, res) => {
 // Delete user's own rating
 export const deleteMyAppRating = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const appRating = await appRatingRepository.deleteAppRatingByCustomerId(userId);
 
     if (!appRating) {
