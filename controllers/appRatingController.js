@@ -19,7 +19,7 @@ export const createOrUpdateAppRating = async (req, res) => {
       appRating = await appRatingRepository.updateAppRatingByCustomerId(userId, {
         rating,
         comment,
-        isApproved: false, // Reset approval status on update
+        isApproved: true, // Auto-approve ratings
       });
     } else {
       // Create new rating
@@ -27,6 +27,7 @@ export const createOrUpdateAppRating = async (req, res) => {
         customerId: userId,
         rating,
         comment,
+        isApproved: true, // Auto-approve ratings
       });
     }
 
