@@ -10,10 +10,10 @@ export const register = async (req, res) => {
       return res.status(400).json({ error: "Username, email, and password are required" });
     }
 
-    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    const usernameRegex = /^[a-zA-Z\s]{3,20}$/;
     if (!usernameRegex.test(username)) {
       return res.status(400).json({ 
-        error: "Username must be 3-20 characters long and contain only letters, numbers, and underscores" 
+        error: "Username must be 3-20 characters long and contain only letters and spaces" 
       });
     }
 
@@ -173,10 +173,10 @@ export const updateProfile = async (req, res) => {
     }
 
     if (username) {
-      const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+      const usernameRegex = /^[a-zA-Z\s]{3,20}$/;
       if (!usernameRegex.test(username)) {
         return res.status(400).json({ 
-          error: "Username must be 3-20 characters long and contain only letters, numbers, and underscores" 
+          error: "Username must be 3-20 characters long and contain only letters and spaces" 
         });
       }
     }
