@@ -30,7 +30,7 @@ A RESTful API backend for NomNom, a food marketplace platform that connects cust
 - Browse products by category
 
 ### Dietary Filters
-- Support for dietary preferences (Vegan, Vegetarian, Halal, Kosher, etc.)
+- Support for dietary preferences (Vegan, Vegetarian, Halal, Non-Halal, etc.)
 - Filter products based on dietary requirements
 
 ### Coupon System
